@@ -389,11 +389,13 @@ app.prepare().then(() => {
       }
 
       if (message.type === "esp32:progress") {
+        const reportedDuration =
+          typeof message.duration === "number" && message.duration > 0 ? Math.max(0, message.duration) : 0;
         playbackState = {
           ...playbackState,
           status: message.status || playbackState.status,
           elapsed: typeof message.elapsed === "number" ? Math.max(0, message.elapsed) : playbackState.elapsed,
-          duration: typeof message.duration === "number" ? Math.max(0, message.duration) : playbackState.duration,
+          duration: reportedDuration || playbackState.duration || playbackState.current?.duration || 0,
         };
         persistState();
         broadcast(wss, stateEnvelope(), ws);

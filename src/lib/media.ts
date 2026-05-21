@@ -1,8 +1,12 @@
+import { execFile } from "node:child_process";
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import type { MediaType, Track } from "./types";
 import { getMediaRoot } from "./paths";
 import { buildAudioStreamUrl, defaultAudioSettings } from "./stream-url";
+
+const execFileAsync = promisify(execFile);
 
 const supportedTypes = new Map<string, { mimeType: string; mediaType: MediaType }>([
   [".mp3", { mimeType: "audio/mpeg", mediaType: "audio" }],
@@ -27,6 +31,27 @@ function toMediaUrl(relativePath: string) {
   return `/api/media/${relativePath.split(path.sep).map(encodeURIComponent).join("/")}`;
 }
 
+function getFfprobeBin() {
+  if (process.env.FFPROBE_BIN) return process.env.FFPROBE_BIN;
+  const ffmpegBin = process.env.FFMPEG_BIN;
+  if (ffmpegBin?.endsWith("ffmpeg")) return `${ffmpegBin.slice(0, -"ffmpeg".length)}ffprobe`;
+  return "ffprobe";
+}
+
+async function probeDuration(filePath: string) {
+  try {
+    const { stdout } = await execFileAsync(
+      getFfprobeBin(),
+      ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath],
+      { timeout: 4000, maxBuffer: 1024 * 64 },
+    );
+    const duration = Number.parseFloat(stdout.trim());
+    return Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function walkMediaFiles(root: string, current = root): Promise<Track[]> {
   const entries = await readdir(current, { withFileTypes: true });
   const tracks = await Promise.all(
@@ -49,6 +74,7 @@ async function walkMediaFiles(root: string, current = root): Promise<Track[]> {
 
       const relativePath = path.relative(root, fullPath);
       const fileStat = await stat(fullPath);
+      const duration = await probeDuration(fullPath);
       const mediaUrl = toMediaUrl(relativePath);
       const audioStreamUrl = buildAudioStreamUrl({ source: "local", path: relativePath }, defaultAudioSettings);
 
@@ -64,7 +90,7 @@ async function walkMediaFiles(root: string, current = root): Promise<Track[]> {
           path: relativePath,
           mimeType: type.mimeType,
           mediaType: type.mediaType,
-          duration: 0,
+          duration,
           url: mediaUrl,
           thumbnail: type.mediaType === "video" ? undefined : "/audio.svg",
           addedAt: fileStat.mtime.toISOString(),

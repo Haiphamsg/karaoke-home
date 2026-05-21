@@ -91,6 +91,16 @@ function formatClock(totalSeconds = 0) {
   return `${minutes}:${seconds}`;
 }
 
+function getDisplayElapsed(state: PlaybackState, nowMs = Date.now()) {
+  if (state.status !== "playing") return state.elapsed;
+
+  const updatedAt = Date.parse(state.updatedAt);
+  if (!Number.isFinite(updatedAt)) return state.elapsed;
+
+  const elapsed = state.elapsed + Math.max(0, (nowMs - updatedAt) / 1000);
+  return state.duration > 0 ? Math.min(elapsed, state.duration) : elapsed;
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url, {
     cache: "no-store",
@@ -122,6 +132,12 @@ export default function KaraokeApp({ variant = "home" }: { variant?: AppVariant 
   const [message, setMessage] = useState("");
   const [hasYouTubeKey, setHasYouTubeKey] = useState(false);
   const [listening, setListening] = useState(false);
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let closed = false;
@@ -431,7 +447,7 @@ export default function KaraokeApp({ variant = "home" }: { variant?: AppVariant 
           <div className="section-title">
             <div>
               <h2>{activeSource === "hot" ? "Gợi ý nhanh" : "Danh sách chọn bài"}</h2>
-              <span>{activeSource === "hot" ? "Ca sĩ, thể loại, Hot search" : "Local và YouTube"}</span>
+              <span>{activeSource === "hot" ? "Lựa chọn nhanh bài hát" : "Local và YouTube"}</span>
             </div>
             {busy ? <LoaderCircle className="spin" size={18} /> : activeSource === "hot" ? <Flame size={18} /> : <Music2 size={18} />}
           </div>
@@ -487,11 +503,11 @@ export default function KaraokeApp({ variant = "home" }: { variant?: AppVariant 
         </aside>
 
         <section className="now-pane">
-          <NowOverview state={state} socketStatus={socketStatus} variant={variant} />
+          <NowOverview state={state} socketStatus={socketStatus} variant={variant} clockNow={clockNow} />
           {variant === "home" ? (
-            <PlayerPanel state={state} onPatch={sendPatch} onCommand={sendCommand} />
+            <PlayerPanel state={state} clockNow={clockNow} onPatch={sendPatch} onCommand={sendCommand} />
           ) : (
-            <RemoteNowPlaying state={state} onCommand={sendCommand} />
+            <RemoteNowPlaying state={state} clockNow={clockNow} onCommand={sendCommand} />
           )}
           <div className="control-grid">
             <QueuePanel state={state} lcd={lcd} onRemove={removeFromQueue} onCommand={sendCommand} />
@@ -507,12 +523,15 @@ function NowOverview({
   state,
   socketStatus,
   variant,
+  clockNow,
 }: {
   state: PlaybackState;
   socketStatus: "connecting" | "online" | "offline";
   variant: AppVariant;
+  clockNow: number;
 }) {
   const nextTrack = state.queue[0];
+  const displayElapsed = getDisplayElapsed(state, clockNow);
 
   return (
     <section className="overview-strip" aria-label="Tổng quan buổi hát">
@@ -531,7 +550,7 @@ function NowOverview({
         </div>
         <div>
           <strong>
-            {formatClock(state.elapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}
+            {formatClock(displayElapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}
           </strong>
           <span>{state.status === "playing" ? "Đang phát" : state.status === "paused" ? "Đang tạm dừng" : "Đang chờ"}</span>
         </div>
@@ -666,16 +685,19 @@ function TrackCard({
 
 function PlayerPanel({
   state,
+  clockNow,
   onPatch,
   onCommand,
 }: {
   state: PlaybackState;
+  clockNow: number;
   onPatch: (patch: Partial<PlaybackState>) => void;
   onCommand: (action: string, payload?: Record<string, unknown>) => void;
 }) {
   const mediaRef = useRef<HTMLMediaElement | null>(null);
   const lastSyncRef = useRef(0);
   const current = state.current;
+  const displayElapsed = getDisplayElapsed(state, clockNow);
 
   useEffect(() => {
     const media = mediaRef.current;
@@ -785,7 +807,7 @@ function PlayerPanel({
           </div>
 
           <p className="time-line">
-            {formatClock(state.elapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}
+            {formatClock(displayElapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}
           </p>
         </>
       )}
@@ -795,11 +817,15 @@ function PlayerPanel({
 
 function RemoteNowPlaying({
   state,
+  clockNow,
   onCommand,
 }: {
   state: PlaybackState;
+  clockNow: number;
   onCommand: (action: string, payload?: Record<string, unknown>) => void;
 }) {
+  const displayElapsed = getDisplayElapsed(state, clockNow);
+
   return (
     <section className="player-panel compact">
       <div className="section-title">
@@ -808,7 +834,10 @@ function RemoteNowPlaying({
       </div>
       <div className="now-title">
         <h3>{state.current?.title || "Chưa có bài"}</h3>
-        <p>{state.current?.artist || "Chế độ Remote"}</p>
+        <p>
+          {state.current?.artist || "Chế độ Remote"} · {formatClock(displayElapsed)} /{" "}
+          {state.duration ? formatClock(state.duration) : "--:--"}
+        </p>
       </div>
       <div className="transport">
         <button className="icon-button large" type="button" onClick={() => onCommand("play")} title="Phát">

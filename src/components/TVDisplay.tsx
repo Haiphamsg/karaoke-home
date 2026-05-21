@@ -39,6 +39,16 @@ function formatClock(totalSeconds = 0) {
   return `${minutes}:${seconds}`;
 }
 
+function getDisplayElapsed(state: PlaybackState, nowMs = Date.now()) {
+  if (state.status !== "playing") return state.elapsed;
+
+  const updatedAt = Date.parse(state.updatedAt);
+  if (!Number.isFinite(updatedAt)) return state.elapsed;
+
+  const elapsed = state.elapsed + Math.max(0, (nowMs - updatedAt) / 1000);
+  return state.duration > 0 ? Math.min(elapsed, state.duration) : elapsed;
+}
+
 function statusLabel(status: PlaybackState["status"]) {
   if (status === "playing") return "Đang hát";
   if (status === "paused") return "Tạm dừng";
@@ -55,8 +65,10 @@ export default function TVDisplay() {
   const [origin] = useState(() => (typeof window === "undefined" ? "" : window.location.origin));
   const [state, setState] = useState<PlaybackState>(initialState);
   const [lcd, setLcd] = useState<LcdPayload>(initialLcd);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const current = state.current;
-  const progressPercent = state.duration > 0 ? Math.min(100, Math.max(0, (state.elapsed / state.duration) * 100)) : 0;
+  const displayElapsed = getDisplayElapsed(state, clockNow);
+  const progressPercent = state.duration > 0 ? Math.min(100, Math.max(0, (displayElapsed / state.duration) * 100)) : 0;
   const nextTrack = state.queue[0];
 
   const sendPatch = useCallback((patch: Partial<PlaybackState>) => {
@@ -69,6 +81,11 @@ export default function TVDisplay() {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({ type: "player:command", action }));
     }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -233,7 +250,7 @@ export default function TVDisplay() {
           </div>
           <small>
             <Clock3 size={15} />
-            {formatClock(state.elapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}
+            {formatClock(displayElapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}
           </small>
         </div>
         <div className="tv-actions">

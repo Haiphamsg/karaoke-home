@@ -25,7 +25,7 @@ body {
 body {
   margin: 0;
   color: var(--ink);
-  background: var(--bg);
+  background: linear-gradient(180deg, #f7f8f5 0%, var(--bg) 44%, #eef2f0 100%);
   font-family:
     Arial,
     Helvetica,
@@ -146,6 +146,11 @@ a {
   border-color: #9db1a7;
 }
 
+.icon-button:hover {
+  background: #f3f8f6;
+  color: var(--accent);
+}
+
 .primary-button {
   min-width: 78px;
   height: 50px;
@@ -154,6 +159,11 @@ a {
   background: var(--accent);
   color: #fff;
   font-weight: 700;
+  box-shadow: 0 8px 20px rgb(15 118 110 / 18%);
+}
+
+.primary-button:hover {
+  background: #0d665f;
 }
 
 .text-button {
@@ -337,6 +347,11 @@ a {
   gap: 12px;
   min-height: 74px;
   padding: 8px;
+  border-left: 4px solid transparent;
+}
+
+.track-card:hover {
+  border-left-color: var(--accent-3);
 }
 
 .thumb {
@@ -389,8 +404,17 @@ a {
   min-height: 78px;
   padding: 14px;
   border-color: transparent;
+  border-left: 4px solid var(--accent);
   background: var(--surface-3);
   text-align: left;
+}
+
+.query-card:nth-child(2n) {
+  border-left-color: var(--accent-2);
+}
+
+.query-card:nth-child(3n) {
+  border-left-color: var(--accent-3);
 }
 
 .query-card em {
@@ -454,6 +478,14 @@ a {
   background:
     linear-gradient(180deg, rgb(15 118 110 / 9%), rgb(15 118 110 / 3%)),
     var(--surface);
+}
+
+.overview-card:nth-child(2) .overview-icon {
+  color: var(--accent-3);
+}
+
+.overview-card:nth-child(3) .overview-icon {
+  color: var(--accent-2);
 }
 
 .overview-icon {

@@ -86,6 +86,18 @@ nano .env
 docker compose up -d --build
 ```
 
+Mac dinh `compose.yaml` map port host `3001` vao port container `3000` de tranh trung voi he thong karaoke cu:
+
+```text
+http://SERVER_IP:3001
+```
+
+Trong `.env`, giu `PORT=3000` vi day la port ben trong container. `PUBLIC_APP_URL` nen la URL that ma dien thoai/TV truy cap, vi du:
+
+```env
+PUBLIC_APP_URL=http://192.168.0.243:3001
+```
+
 Thu muc can giu lai khi backup:
 
 - `data/`: cache YouTube, trang thai dang phat, goi y tuy bien.
@@ -117,7 +129,7 @@ docker compose up -d --build --force-recreate
 
 ```bash
 docker compose logs -f --tail=100
-curl -s http://127.0.0.1:3000/api/settings
+curl -s http://127.0.0.1:3001/api/settings
 ```
 
 Khong nen copy ca `node_modules/` hoac `.next/` tu local len server. Docker se build lai tu source va `package-lock.json`.
@@ -134,6 +146,12 @@ WebSocket endpoint:
 
 ```text
 ws://SERVER_IP:3000/ws?role=esp32
+```
+
+Neu chay bang Docker mac dinh cua repo nay, ESP32 can dung port host `3001`:
+
+```text
+ws://SERVER_IP:3001/ws?role=esp32
 ```
 
 Server se gui message:
@@ -162,7 +180,7 @@ Server se gui message:
 Voi ESP32 + PCM5102, nen de ESP32 nhan WebSocket state, sau do neu `current.source === "local"` thi stream audio qua HTTP tu:
 
 ```text
-http://SERVER_IP:3000 + streamUrl
+http://SERVER_IP:3001 + streamUrl
 ```
 
 Voi lua chon A + YT2, track YouTube co `streamUrl` dang:

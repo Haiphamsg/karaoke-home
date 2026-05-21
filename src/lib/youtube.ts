@@ -30,6 +30,18 @@ type YouTubeSearchResponse = {
   };
 };
 
+type YouTubeVideosResponse = {
+  items?: Array<{
+    id?: string;
+    contentDetails?: {
+      duration?: string;
+    };
+  }>;
+  error?: {
+    message?: string;
+  };
+};
+
 const cacheFile = "youtube-cache.json";
 const cacheTtlMs = 12 * 60 * 60 * 1000;
 
@@ -58,6 +70,40 @@ function cacheKey(query: string) {
   return buildQuery(query).toLowerCase();
 }
 
+function parseIsoDuration(value = "") {
+  const match = value.match(/^P(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+  if (!match) return 0;
+
+  const hours = Number.parseInt(match[1] || "0", 10);
+  const minutes = Number.parseInt(match[2] || "0", 10);
+  const seconds = Number.parseInt(match[3] || "0", 10);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+async function fetchVideoDurations(videoIds: string[], apiKey: string) {
+  if (videoIds.length === 0) return new Map<string, number>();
+
+  const url = new URL("https://www.googleapis.com/youtube/v3/videos");
+  url.searchParams.set("part", "contentDetails");
+  url.searchParams.set("id", videoIds.join(","));
+  url.searchParams.set("key", apiKey);
+
+  const response = await fetch(url, { next: { revalidate: 0 } });
+  const payload = (await response.json()) as YouTubeVideosResponse;
+
+  if (!response.ok) {
+    throw new Error(payload.error?.message || "YouTube video details failed");
+  }
+
+  const durations = new Map<string, number>();
+  for (const item of payload.items || []) {
+    if (!item.id) continue;
+    durations.set(item.id, parseIsoDuration(item.contentDetails?.duration));
+  }
+
+  return durations;
+}
+
 export async function searchYouTube(rawQuery: string) {
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
   const query = buildQuery(rawQuery);
@@ -70,7 +116,8 @@ export async function searchYouTube(rawQuery: string) {
   const key = cacheKey(query);
   const cached = cache[key];
 
-  if (cached && Date.now() - cached.createdAt < cacheTtlMs) {
+  const cachedHasDuration = cached?.items.every((item) => typeof item.duration === "number" && item.duration > 0);
+  if (cached && cachedHasDuration && Date.now() - cached.createdAt < cacheTtlMs) {
     return { items: cached.items, cached: true, configured: Boolean(apiKey) };
   }
 
@@ -101,6 +148,9 @@ export async function searchYouTube(rawQuery: string) {
     throw new Error(payload.error?.message || "YouTube search failed");
   }
 
+  const videoIds = payload.items?.map((item) => item.id?.videoId).filter((id): id is string => Boolean(id)) || [];
+  const durations = await fetchVideoDurations(videoIds, apiKey);
+
   const items =
     payload.items
       ?.map((item): Track | null => {
@@ -123,6 +173,7 @@ export async function searchYouTube(rawQuery: string) {
             item.snippet.thumbnails?.medium?.url ||
             item.snippet.thumbnails?.default?.url,
           mediaType: "video",
+          duration: durations.get(videoId) || 0,
         };
       })
       .filter((item): item is Track => Boolean(item)) || [];

@@ -1,0 +1,14 @@
+services:
+  karaoke-home:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: karaoke-home
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+    restart: unless-stopped

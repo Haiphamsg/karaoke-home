@@ -1,0 +1,34 @@
+[
+  {
+    "id": "hot:nhac-tre",
+    "kind": "query",
+    "category": "Thể loại",
+    "title": "Nhạc trẻ Hot",
+    "subtitle": "Beat mới, dễ hát trong gia đình",
+    "query": "karaoke nhac tre hot trend 2026"
+  },
+  {
+    "id": "hot:bolero",
+    "kind": "query",
+    "category": "Thể loại",
+    "title": "Bolero dễ hát",
+    "subtitle": "Tone nam nữ, hợp phòng khách",
+    "query": "karaoke bolero de hat tone nam nu"
+  },
+  {
+    "id": "singer:son-tung",
+    "kind": "query",
+    "category": "Ca sĩ",
+    "title": "Sơn Tùng M-TP",
+    "subtitle": "Các bài karaoke được tìm nhiều",
+    "query": "karaoke son tung mtp beat"
+  },
+  {
+    "id": "song:noinaycoanh",
+    "kind": "query",
+    "category": "Hot search",
+    "title": "Nơi Này Có Anh",
+    "subtitle": "Sơn Tùng M-TP",
+    "query": "noi nay co anh karaoke beat"
+  }
+]

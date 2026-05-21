@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+npm-debug.log
+.env
+data
+media
+coverage
+.DS_Store

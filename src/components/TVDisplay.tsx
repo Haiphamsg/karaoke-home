@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Pause, Play, QrCode, SkipForward, Volume2 } from "lucide-react";
+import { Clock3, Disc3, ListMusic, Maximize2, Pause, Play, QrCode, Radio, SkipForward, SlidersHorizontal, Volume2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LcdPayload, PlaybackState, SocketEnvelope } from "@/lib/types";
 
@@ -39,6 +39,14 @@ function formatClock(totalSeconds = 0) {
   return `${minutes}:${seconds}`;
 }
 
+function statusLabel(status: PlaybackState["status"]) {
+  if (status === "playing") return "Đang hát";
+  if (status === "paused") return "Tạm dừng";
+  if (status === "loading") return "Đang tải";
+  if (status === "stopped") return "Đã dừng";
+  return "Sẵn sàng";
+}
+
 export default function TVDisplay() {
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRef = useRef<HTMLMediaElement | null>(null);
@@ -48,6 +56,8 @@ export default function TVDisplay() {
   const [state, setState] = useState<PlaybackState>(initialState);
   const [lcd, setLcd] = useState<LcdPayload>(initialLcd);
   const current = state.current;
+  const progressPercent = state.duration > 0 ? Math.min(100, Math.max(0, (state.elapsed / state.duration) * 100)) : 0;
+  const nextTrack = state.queue[0];
 
   const sendPatch = useCallback((patch: Partial<PlaybackState>) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -135,10 +145,31 @@ export default function TVDisplay() {
     <main className="tv-shell">
       {!armed && (
         <button className="tv-start" type="button" onClick={() => setArmed(true)}>
-          <Play size={36} />
+          <Play size={28} />
           Bật màn hình TV
         </button>
       )}
+
+      <header className="tv-topbar">
+        <div className="tv-brand">
+          <Disc3 size={24} />
+          <div>
+            <strong>Karaoke Home</strong>
+            <span>{statusLabel(state.status)}</span>
+          </div>
+        </div>
+        <div className="tv-status-set">
+          <span>
+            <Radio size={16} />
+            WebSocket
+          </span>
+          <span>
+            <SlidersHorizontal size={16} />
+            Tone {state.audioSettings.tone > 0 ? `+${state.audioSettings.tone}` : state.audioSettings.tone}
+          </span>
+          <span>{state.audioSettings.vocalCut ? "Tách vocal" : "Vocal gốc"}</span>
+        </div>
+      </header>
 
       <section className="tv-stage">
         {!current ? (
@@ -193,10 +224,17 @@ export default function TVDisplay() {
       </section>
 
       <aside className="tv-overlay">
-        <div>
-          <p>{state.status}</p>
+        <div className="tv-now">
+          <p>{current?.source === "youtube" ? "YouTube" : current?.source === "local" ? "Local" : "Karaoke"}</p>
           <h1>{current?.title || "Sẵn sàng"}</h1>
-          <span>{current?.artist || "Karaoke Home"}</span>
+          <span>{current?.artist || "Chọn bài từ điện thoại hoặc tablet"}</span>
+          <div className="tv-progress" aria-label="Tiến độ bài hát">
+            <div style={{ width: `${progressPercent}%` }} />
+          </div>
+          <small>
+            <Clock3 size={15} />
+            {formatClock(state.elapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}
+          </small>
         </div>
         <div className="tv-actions">
           <button type="button" onClick={() => sendCommand("play")} title="Phát">
@@ -215,12 +253,16 @@ export default function TVDisplay() {
       </aside>
 
       <aside className="tv-queue">
+        <div className="tv-queue-title">
+          <ListMusic size={18} />
+          <strong>Hàng đợi</strong>
+        </div>
         <div className="tv-lcd">
           <code>{lcd.line1}</code>
           <code>{lcd.line2}</code>
         </div>
-        <p>{formatClock(state.elapsed)} / {state.duration ? formatClock(state.duration) : "--:--"}</p>
-        <p>Tiếp theo: {state.queue[0]?.title || "Trống"}</p>
+        <p>Tiếp theo: {nextTrack?.title || "Trống"}</p>
+        <p>Còn lại: {Math.max(0, state.queue.length - 1)} bài</p>
         <div className="remote-link">
           <QrCode size={20} />
           <span>{origin ? `${origin}/remote` : "/remote"}</span>

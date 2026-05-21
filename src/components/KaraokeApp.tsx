@@ -431,7 +431,7 @@ export default function KaraokeApp({ variant = "home" }: { variant?: AppVariant 
           <div className="section-title">
             <div>
               <h2>{activeSource === "hot" ? "Gợi ý nhanh" : "Danh sách chọn bài"}</h2>
-              <span>{activeSource === "hot" ? "Chiếm 1/3 giao diện để chọn nhanh." : "Tìm bài theo Local hoặc YouTube."}</span>
+              <span>{activeSource === "hot" ? "Ca sĩ, thể loại, Hot search" : "Local và YouTube"}</span>
             </div>
             {busy ? <LoaderCircle className="spin" size={18} /> : activeSource === "hot" ? <Flame size={18} /> : <Music2 size={18} />}
           </div>
@@ -577,7 +577,7 @@ function AudioSettingsPanel({
   return (
     <section className="settings-panel">
       <div className="section-title">
-        <h2>Âm thanh ESP32</h2>
+        <h2>Âm thanh realtime</h2>
         <SlidersHorizontal size={18} />
       </div>
 
@@ -595,7 +595,7 @@ function AudioSettingsPanel({
       </label>
 
       <label className="range-row">
-        <span>Tone</span>
+        <span>Tone live</span>
         <input
           type="range"
           min="-6"
@@ -613,7 +613,7 @@ function AudioSettingsPanel({
           type="button"
           onClick={() => updateSettings({ vocalCut: !settings.vocalCut })}
         >
-          Vocal cut
+          Tách vocal
         </button>
         <select
           value={settings.bitrateKbps}

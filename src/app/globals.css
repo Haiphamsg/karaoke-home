@@ -635,7 +635,7 @@ a {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #050807;
+  background: #050706;
   color: #fff;
 }
 
@@ -654,6 +654,72 @@ a {
   object-fit: contain;
 }
 
+.tv-topbar {
+  position: absolute;
+  z-index: 4;
+  top: 22px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.tv-brand,
+.tv-status-set,
+.tv-status-set span,
+.tv-queue-title,
+.tv-now small {
+  display: flex;
+  align-items: center;
+}
+
+.tv-brand {
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 8px;
+  background: rgb(5 7 6 / 78%);
+}
+
+.tv-brand strong,
+.tv-brand span {
+  display: block;
+}
+
+.tv-brand strong {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.tv-brand span {
+  margin-top: 3px;
+  color: rgb(255 255 255 / 68%);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.tv-status-set {
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tv-status-set span {
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 999px;
+  background: rgb(5 7 6 / 70%);
+  color: rgb(255 255 255 / 78%);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .audio-tv,
 .tv-idle {
   display: grid;
@@ -663,6 +729,16 @@ a {
   height: 100%;
   padding: 40px;
   text-align: center;
+}
+
+.tv-idle {
+  background: #050706;
+  color: rgb(255 255 255 / 90%);
+}
+
+.tv-idle p {
+  margin: 0;
+  color: rgb(255 255 255 / 68%);
 }
 
 .audio-tv audio {
@@ -678,26 +754,33 @@ a {
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 16px;
+  padding: 18px;
+  border: 1px solid rgb(255 255 255 / 14%);
   border-radius: 8px;
-  background: rgb(0 0 0 / 58%);
+  background: rgb(5 7 6 / 80%);
 }
 
 .tv-overlay p,
 .tv-overlay span,
 .tv-queue p,
-.remote-link {
+.remote-link,
+.tv-now small {
   margin: 0;
   color: rgb(255 255 255 / 74%);
 }
 
+.tv-now {
+  min-width: 0;
+  flex: 1;
+}
+
 .tv-overlay h1 {
-  max-width: min(70vw, 980px);
-  margin: 4px 0;
+  max-width: min(72vw, 1040px);
+  margin: 5px 0 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 36px;
+  font-size: 42px;
 }
 
 .tv-actions button {
@@ -710,16 +793,49 @@ a {
   color: #fff;
 }
 
+.tv-progress {
+  width: min(760px, 100%);
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 18%);
+}
+
+.tv-progress div {
+  height: 100%;
+  border-radius: inherit;
+  background: #20a39a;
+}
+
+.tv-now small {
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
 .tv-queue {
   position: absolute;
-  top: 24px;
+  top: 94px;
   right: 24px;
   display: grid;
   gap: 8px;
   width: min(340px, calc(100vw - 48px));
   padding: 14px;
+  border: 1px solid rgb(255 255 255 / 14%);
   border-radius: 8px;
-  background: rgb(0 0 0 / 58%);
+  background: rgb(5 7 6 / 78%);
+}
+
+.tv-queue-title {
+  justify-content: space-between;
+  gap: 10px;
+  color: rgb(255 255 255 / 86%);
+}
+
+.tv-queue-title strong {
+  margin-right: auto;
+  font-size: 14px;
 }
 
 .tv-lcd {
@@ -747,7 +863,7 @@ a {
 
 .tv-start {
   position: absolute;
-  z-index: 5;
+  z-index: 6;
   top: 24px;
   left: 24px;
   display: inline-flex;
@@ -839,8 +955,19 @@ a {
     font-size: 24px;
   }
 
-  .tv-queue {
+  .tv-topbar {
     top: 12px;
+    left: 12px;
+    right: 12px;
+    align-items: flex-start;
+  }
+
+  .tv-status-set {
+    display: none;
+  }
+
+  .tv-queue {
+    top: 84px;
     right: 12px;
   }
 }

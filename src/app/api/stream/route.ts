@@ -21,7 +21,7 @@ function buildFilters(tone: number, vocalCut: boolean) {
   const filters: string[] = [];
 
   if (vocalCut) {
-    filters.push("pan=stereo|c0=c0-c1|c1=c1-c0");
+    filters.push("pan=stereo|c0=c0-c1|c1=c1-c0,alimiter=limit=0.95");
   }
 
   if (tone !== 0) {

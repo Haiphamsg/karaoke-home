@@ -152,10 +152,10 @@ function buildStreamUrl(track, settings = playbackState.audioSettings) {
   return `/api/stream?${params.toString()}`;
 }
 
-function attachStreamUrl(track) {
+function attachStreamUrl(track, settings = playbackState.audioSettings) {
   if (!track || typeof track !== "object") return track;
   if ((track.source === "local" && track.path) || (track.source === "youtube" && track.videoId)) {
-    const streamUrl = buildStreamUrl(track);
+    const streamUrl = buildStreamUrl(track, settings);
     return {
       ...track,
       streamUrl,
@@ -164,6 +164,15 @@ function attachStreamUrl(track) {
   }
 
   return track;
+}
+
+function refreshCurrentStreamUrl(state = playbackState) {
+  if (!state.current) return state;
+
+  return {
+    ...state,
+    current: attachStreamUrl(state.current, state.audioSettings),
+  };
 }
 
 function broadcast(wss, payload, except) {
@@ -218,13 +227,24 @@ function applyPlayerCommand(command) {
   }
 
   if (action === "settings") {
+    const previousSettings = playbackState.audioSettings;
+    const nextSettings = clampAudioSettings({
+      ...playbackState.audioSettings,
+      ...(command.settings || command.payload?.settings || {}),
+    });
+    const needsStreamReload =
+      previousSettings.tone !== nextSettings.tone ||
+      previousSettings.vocalCut !== nextSettings.vocalCut ||
+      previousSettings.bitrateKbps !== nextSettings.bitrateKbps;
+
     playbackState = {
       ...playbackState,
-      audioSettings: clampAudioSettings({
-        ...playbackState.audioSettings,
-        ...(command.settings || command.payload?.settings || {}),
-      }),
+      audioSettings: nextSettings,
     };
+
+    if (needsStreamReload) {
+      playbackState = refreshCurrentStreamUrl(playbackState);
+    }
     return;
   }
 
@@ -311,11 +331,11 @@ app.prepare().then(() => {
             ...patch.audioSettings,
           });
         }
-        playbackState = {
+        playbackState = refreshCurrentStreamUrl({
           ...playbackState,
           ...patch,
           queue: coerceQueue(patch?.queue ?? playbackState.queue),
-        };
+        });
         persistState();
         broadcast(wss, stateEnvelope());
         return;

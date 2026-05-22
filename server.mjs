@@ -128,11 +128,16 @@ function clampAudioSettings(settings = {}) {
 
 playbackState.audioSettings = clampAudioSettings(playbackState.audioSettings);
 
+function clampStartSeconds(value) {
+  const start = Number(value || 0);
+  return Number.isFinite(start) && start > 0 ? Math.floor(start) : 0;
+}
+
 function volumePercentToAudioI2S(percent) {
   return Math.max(0, Math.min(21, Math.round((percent / 100) * 21)));
 }
 
-function buildStreamUrl(track, settings = playbackState.audioSettings) {
+function buildStreamUrl(track, settings = playbackState.audioSettings, startSeconds = track.streamStartSeconds || 0) {
   const audioSettings = clampAudioSettings(settings);
   const params = new URLSearchParams({
     source: track.source,
@@ -149,15 +154,22 @@ function buildStreamUrl(track, settings = playbackState.audioSettings) {
     params.set("videoId", track.videoId);
   }
 
+  const start = clampStartSeconds(startSeconds);
+  if (start > 0) {
+    params.set("start", String(start));
+  }
+
   return `/api/stream?${params.toString()}`;
 }
 
-function attachStreamUrl(track, settings = playbackState.audioSettings) {
+function attachStreamUrl(track, settings = playbackState.audioSettings, startSeconds = track.streamStartSeconds || 0) {
   if (!track || typeof track !== "object") return track;
   if ((track.source === "local" && track.path) || (track.source === "youtube" && track.videoId)) {
-    const streamUrl = buildStreamUrl(track, settings);
+    const streamStartSeconds = clampStartSeconds(startSeconds);
+    const streamUrl = buildStreamUrl(track, settings, streamStartSeconds);
     return {
       ...track,
+      streamStartSeconds,
       streamUrl,
       audioStreamUrl: streamUrl,
     };
@@ -166,12 +178,12 @@ function attachStreamUrl(track, settings = playbackState.audioSettings) {
   return track;
 }
 
-function refreshCurrentStreamUrl(state = playbackState) {
+function refreshCurrentStreamUrl(state = playbackState, startSeconds = state.current?.streamStartSeconds || 0) {
   if (!state.current) return state;
 
   return {
     ...state,
-    current: attachStreamUrl(state.current, state.audioSettings),
+    current: attachStreamUrl(state.current, state.audioSettings, startSeconds),
   };
 }
 
@@ -243,7 +255,7 @@ function applyPlayerCommand(command) {
     };
 
     if (needsStreamReload) {
-      playbackState = refreshCurrentStreamUrl(playbackState);
+      playbackState = refreshCurrentStreamUrl(playbackState, playbackState.elapsed);
     }
     return;
   }
@@ -389,12 +401,17 @@ app.prepare().then(() => {
       }
 
       if (message.type === "esp32:progress") {
+        const streamStartSeconds = playbackState.current?.streamStartSeconds || 0;
         const reportedDuration =
           typeof message.duration === "number" && message.duration > 0 ? Math.max(0, message.duration) : 0;
+        const reportedElapsed =
+          typeof message.elapsed === "number"
+            ? Math.max(0, streamStartSeconds + message.elapsed)
+            : playbackState.elapsed;
         playbackState = {
           ...playbackState,
           status: message.status || playbackState.status,
-          elapsed: typeof message.elapsed === "number" ? Math.max(0, message.elapsed) : playbackState.elapsed,
+          elapsed: reportedElapsed,
           duration: reportedDuration || playbackState.duration || playbackState.current?.duration || 0,
         };
         persistState();

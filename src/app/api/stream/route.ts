@@ -17,6 +17,12 @@ function clampBitrate(value: string | null) {
   return [128, 160, 192].includes(parsed) ? parsed : 192;
 }
 
+function clampStart(value: string | null) {
+  const parsed = Number.parseInt(value || "0", 10);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, Math.min(60 * 60 * 6, parsed));
+}
+
 function buildFilters(tone: number, vocalCut: boolean) {
   const filters: string[] = [];
 
@@ -26,7 +32,9 @@ function buildFilters(tone: number, vocalCut: boolean) {
 
   if (tone !== 0) {
     const ratio = Math.pow(2, tone / 12);
-    filters.push(`asetrate=44100*${ratio.toFixed(6)},aresample=44100,atempo=${(1 / ratio).toFixed(6)}`);
+    filters.push(
+      `aresample=44100,asetrate=44100*${ratio.toFixed(6)},aresample=44100,atempo=${(1 / ratio).toFixed(6)}`,
+    );
   }
 
   return filters.length > 0 ? ["-af", filters.join(",")] : [];
@@ -81,6 +89,7 @@ export async function GET(request: Request) {
   const tone = clampTone(url.searchParams.get("tone"));
   const vocalCut = url.searchParams.get("vocalCut") === "true";
   const bitrate = clampBitrate(url.searchParams.get("bitrate"));
+  const start = clampStart(url.searchParams.get("start"));
   const ffmpegBin = process.env.FFMPEG_BIN || "ffmpeg";
   const ytDlpBin = process.env.YTDLP_BIN || "yt-dlp";
   const headers = new Headers({
@@ -106,7 +115,16 @@ export async function GET(request: Request) {
 
     ffmpeg = spawn(
       ffmpegBin,
-      ["-hide_banner", "-loglevel", "error", "-nostdin", "-i", filePath, ...ffmpegOutputArgs(tone, vocalCut, bitrate)],
+      [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-nostdin",
+        ...(start > 0 ? ["-ss", String(start)] : []),
+        "-i",
+        filePath,
+        ...ffmpegOutputArgs(tone, vocalCut, bitrate),
+      ],
       { stdio: ["ignore", "pipe", "pipe"] },
     );
   } else if (source === "youtube") {
@@ -123,7 +141,16 @@ export async function GET(request: Request) {
     );
     ffmpeg = spawn(
       ffmpegBin,
-      ["-hide_banner", "-loglevel", "error", "-nostdin", "-i", "pipe:0", ...ffmpegOutputArgs(tone, vocalCut, bitrate)],
+      [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-nostdin",
+        "-i",
+        "pipe:0",
+        ...(start > 0 ? ["-ss", String(start)] : []),
+        ...ffmpegOutputArgs(tone, vocalCut, bitrate),
+      ],
       { stdio: ["pipe", "pipe", "pipe"] },
     );
 

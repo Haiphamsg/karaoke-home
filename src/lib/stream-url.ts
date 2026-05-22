@@ -24,7 +24,10 @@ export function volumePercentToAudioI2S(percent: number) {
   return Math.max(0, Math.min(21, Math.round((percent / 100) * 21)));
 }
 
-export function buildAudioStreamUrl(track: Pick<Track, "source" | "path" | "videoId">, settings = defaultAudioSettings) {
+export function buildAudioStreamUrl(
+  track: Pick<Track, "source" | "path" | "videoId" | "streamStartSeconds">,
+  settings = defaultAudioSettings,
+) {
   const audioSettings = clampAudioSettings(settings);
   const params = new URLSearchParams({
     source: track.source,
@@ -39,6 +42,10 @@ export function buildAudioStreamUrl(track: Pick<Track, "source" | "path" | "vide
 
   if (track.source === "youtube" && track.videoId) {
     params.set("videoId", track.videoId);
+  }
+
+  if (track.streamStartSeconds && track.streamStartSeconds > 0) {
+    params.set("start", String(Math.max(0, Math.floor(track.streamStartSeconds))));
   }
 
   return `/api/stream?${params.toString()}`;

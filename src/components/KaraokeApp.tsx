@@ -701,6 +701,12 @@ function PlayerPanel({
 
   useEffect(() => {
     const media = mediaRef.current;
+    if (!media) return;
+    media.volume = Math.max(0, Math.min(1, state.audioSettings.volumePercent / 100));
+  }, [state.audioSettings.volumePercent, current?.id]);
+
+  useEffect(() => {
+    const media = mediaRef.current;
     if (!media || current?.source !== "local") return;
 
     media.play().catch(() => {

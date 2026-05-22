@@ -15,6 +15,7 @@ export type Track = {
   mimeType?: string;
   path?: string;
   videoId?: string;
+  streamStartSeconds?: number;
   url?: string;
   duration?: number;
   addedAt?: string;
